@@ -57,6 +57,7 @@ jobs:
           haxelib git polymod https://github.com/larsiusprime/polymod
           haxelib git flixel-addons https://github.com/ninjamuffin99/flixel-addons
           haxelib git linc_luajit https://github.com/Sirox228/linc_luajit.git
+          haxelib git extension-androidtools https://github.com/jigsaw-4277821/extension-androidtools.git
           haxelib list
       
       - name: Create Version Tag
