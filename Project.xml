@@ -103,7 +103,7 @@
 	<haxelib name="flixel-addons" />
 	<haxelib name="hscript" />
 	<haxelib name="actuate" />
-    <haxelib name="extension-webm" if="desktop" />
+        <haxelib name="extension-webm" if="desktop" />
 	<haxelib name="extension-androidtools" if="android" />
 
 	<!--In case you want to use the ui package-->
