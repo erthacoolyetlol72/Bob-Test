@@ -27,7 +27,7 @@
 	<window if="desktop" orientation="landscape" fullscreen="false" resizable="true" vsync="false"/>
 
 	<!--Mobile-specific-->
-	<window if="mobile" orientation="landscape" fullscreen="true" width="0" height="0" resizable="false"/>
+	<window if="mobile" orientation="landscape" fullscreen="true" width="1280" height="720" resizable="false" />
 
 	<!--Switch-specific-->
 	<window if="switch" orientation="landscape" fullscreen="true" width="0" height="0" resizable="true" />
@@ -42,7 +42,8 @@
 
 	<assets path="assets/preload" rename="assets" exclude="*.ogg" if="web"/>
 	<assets path="assets/preload" rename="assets" exclude="*.mp3" unless="web"/>
-	
+	<assets path="mobile" rename="assets/mobile" if="mobile" />
+
 	<!-- <define name="PRELOAD_ALL" /> -->
 	<define name="PRELOAD_ALL" unless="web" />
 	<define name="NO_PRELOAD_ALL" unless="PRELOAD_ALL"/>
@@ -103,6 +104,7 @@
 	<haxelib name="hscript" />
 	<haxelib name="actuate" />
     <haxelib name="extension-webm" if="desktop" />
+	<haxelib name="extension-androidtools" if="android" />
 
 	<!--In case you want to use the ui package-->
 	<haxelib name="flixel-ui" />
