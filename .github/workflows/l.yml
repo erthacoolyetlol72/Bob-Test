@@ -46,6 +46,7 @@ jobs:
           haxelib install tjson
           haxelib install hxjsonast
           haxelib install hxCodec
+          haxelib install extension-webm
           haxelib git extension-webview https://github.com/MatheusSilver/extension-webview
           haxelib git extension-webm https://github.com/Sirox228/extension-webm
           haxelib git polymod https://github.com/MasterEric/polymod
