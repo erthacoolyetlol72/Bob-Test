@@ -1,6 +1,6 @@
 #!/bin/bash
 # Installs the freshly built APK in the CI emulator, launches it, and reports what the log says.
-APK=$(ls exportJon/release/android/bin/app/build/outputs/apk/debug/*.apk | head -1)
+APK=$(ls exportJon/*/android/bin/app/build/outputs/apk/debug/*.apk | head -1)
 echo "Installing $APK"
 adb install -r "$APK" || { echo "::error::adb install failed"; exit 0; }
 adb logcat -c
