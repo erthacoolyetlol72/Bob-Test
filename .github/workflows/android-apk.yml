@@ -92,7 +92,7 @@ jobs:
       - name: Compile
         run: |
           set +e
-          haxelib run lime build android -armv7 -arm64 -64 -D NO_PRECOMPILED_HEADERS 2>&1 | tee build.log
+          haxelib run lime build android -armv7 -arm64 -32 -D NO_PRECOMPILED_HEADERS 2>&1 | tee build.log
           code=${PIPESTATUS[0]}
           if [ $code -ne 0 ]; then
             ERRS=$(grep -n -E "error:|Error:|undefined reference|ld: |\*\*\*|FAILED|Exception|cannot find|No such file|what went wrong" build.log | grep -v -i "warning" | head -8 | cut -c1-300 | tr '\n' '|')
