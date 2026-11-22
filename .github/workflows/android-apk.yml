@@ -1,0 +1,99 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  buildAndroid:
+    name: Build Android APK
+    runs-on: ubuntu-22.04
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install system packages
+        run: sudo apt-get update -qq && (sudo apt-get install -y -qq libncurses5 || true)
+
+      # Done before switching to Java 11: the runner's sdkmanager needs its default Java 17
+      - name: Install Android SDK parts
+        run: |
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses > /dev/null || true
+          "$SDKMANAGER" "platforms;android-29" "build-tools;30.0.3" > /dev/null
+          ls "$ANDROID_HOME/build-tools" "$ANDROID_HOME/platforms"
+
+      - name: Setup Android NDK
+        uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r15c
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: 4.2.5
+
+      - name: Restore cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/haxelib
+            ~/.gradle
+            exportJon/release/android/obj
+          key: android-build-${{ hashFiles('Project.xml', '.github/workflows/android-apk.yml') }}
+          restore-keys: android-build-
+
+      - name: Install Haxe libraries
+        run: |
+          haxelib setup ~/haxelib
+          haxelib install hxcpp 4.2.1 --quiet --always
+          haxelib install lime 7.9.0 --quiet --always
+          haxelib install openfl 9.1.0 --quiet --always
+          haxelib install flixel 4.11.0 --quiet --always
+          haxelib install flixel-addons 2.11.0 --quiet --always
+          haxelib install flixel-ui 2.4.0 --quiet --always
+          haxelib install hscript 2.5.0 --quiet --always
+          haxelib install actuate --quiet --always
+          haxelib install newgrounds 1.3.0 --quiet --always
+          haxelib install polymod 1.3.1 --quiet --always
+          haxelib git extension-androidtools https://github.com/MAJigsaw77/extension-androidtools.git --always
+          # installing the libraries above can pull newer lime/hxcpp, so pin them back
+          haxelib set hxcpp 4.2.1 --always
+          haxelib set lime 7.9.0 --always
+          haxelib set openfl 9.1.0 --always
+          haxelib set flixel 4.11.0 --always
+          haxelib set flixel-addons 2.11.0 --always
+          haxelib set flixel-ui 2.4.0 --always
+          haxelib set hscript 2.5.0 --always
+          haxelib set polymod 1.3.1 --always
+          haxelib list
+
+      - name: Setup Lime for Android
+        run: |
+          haxelib run lime config ANDROID_SDK $ANDROID_HOME
+          haxelib run lime config ANDROID_NDK_ROOT $ANDROID_NDK_HOME
+          haxelib run lime config JAVA_HOME $JAVA_HOME
+          haxelib run lime config ANDROID_SETUP true
+          # JCenter is shut down; Lime 7.9's Gradle templates still point at it
+          grep -rl "jcenter()" ~/haxelib/lime --include=*.gradle | xargs -r sed -i 's/jcenter()/mavenCentral()/g'
+        env:
+          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+
+      - name: Compile
+        run: haxelib run lime build android -armv7 -arm64 -D NO_PRECOMPILED_HEADERS
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Bob-Android
+          path: exportJon/release/android/bin/app/build/outputs/apk/**/*.apk
+          if-no-files-found: error
