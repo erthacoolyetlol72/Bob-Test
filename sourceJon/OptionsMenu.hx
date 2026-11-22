@@ -35,6 +35,9 @@ class OptionsMenu extends MusicBeatState
 			#end
 			new ScrollSpeedOption("Change your scroll speed (Left for -0.1, right for +0.1. If its at 1, it will be chart dependent)"),
 			new OffsetMenu("Get a note offset based off of your inputs!"),
+			#if mobile
+			new MobileControlsOption("Pick how you hit the notes (pad, hitbox...)"),
+			#end
 			new CustomizeGameplay("Drag'n'Drop Gameplay Modules around to your preference")
 		]),
 		new OptionCatagory("Appearence", [
@@ -91,6 +94,11 @@ class OptionsMenu extends MusicBeatState
 		versionShit.setFormat("VCR OSD Mono", 16, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
 		add(versionShit);
 
+		#if mobile
+		addVirtualPad(LEFT_FULL, A_B);
+		addVirtualPadCamera(false);
+		#end
+
 		super.create();
 	}
 
@@ -134,25 +142,25 @@ class OptionsMenu extends MusicBeatState
 				{
 					if (FlxG.keys.pressed.SHIFT)
 						{
-							if (FlxG.keys.pressed.RIGHT)
+							if ((FlxG.keys.pressed.RIGHT #if mobile || controls.RIGHT #end))
 								currentSelectedCat.getOptions()[curSelected].right();
-							if (FlxG.keys.pressed.LEFT)
+							if ((FlxG.keys.pressed.LEFT #if mobile || controls.LEFT #end))
 								currentSelectedCat.getOptions()[curSelected].left();
 						}
 					else
 					{
-						if (FlxG.keys.justPressed.RIGHT)
+						if ((FlxG.keys.justPressed.RIGHT #if mobile || controls.RIGHT_P #end))
 							currentSelectedCat.getOptions()[curSelected].right();
-						if (FlxG.keys.justPressed.LEFT)
+						if ((FlxG.keys.justPressed.LEFT #if mobile || controls.LEFT_P #end))
 							currentSelectedCat.getOptions()[curSelected].left();
 					}
 				}
 				else
 				{
 					if (FlxG.keys.pressed.SHIFT)
-						if (FlxG.keys.pressed.RIGHT)
+						if ((FlxG.keys.pressed.RIGHT #if mobile || controls.RIGHT #end))
 							FlxG.save.data.offset += 1;
-						else if (FlxG.keys.pressed.LEFT)
+						else if ((FlxG.keys.pressed.LEFT #if mobile || controls.LEFT #end))
 							FlxG.save.data.offset -= 1;
 					else if (controls.RIGHT_P)
 							FlxG.save.data.offset += 0.1;
@@ -164,10 +172,10 @@ class OptionsMenu extends MusicBeatState
 			}
 			else
 			{
-				if (FlxG.keys.pressed.RIGHT)
+				if ((FlxG.keys.pressed.RIGHT #if mobile || controls.RIGHT #end))
 					FlxG.save.data.offset+= 0.01;
 
-				if (FlxG.keys.pressed.LEFT)
+				if ((FlxG.keys.pressed.LEFT #if mobile || controls.LEFT #end))
 					FlxG.save.data.offset-= 0.01;
 				
 				versionShit.text = "Offset (Left, Right, Shift to go faster): " + truncateFloat(FlxG.save.data.offset,2) + " - Description - " + currentDescription;

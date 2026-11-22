@@ -64,6 +64,10 @@ class GameOverSubstate extends MusicBeatSubstate
 		FlxG.camera.scroll.set();
 		FlxG.camera.target = null;
 		bf.playAnim('firstDeath');
+		#if mobile
+		addVirtualPad(NONE, A_B);
+		addVirtualPadCamera(false);
+		#end
 		switch (daStage)
 		{
 			case 'hellstage':

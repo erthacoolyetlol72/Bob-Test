@@ -490,6 +490,28 @@ class ReplayOption extends Option
 	}
 }
 
+#if mobile
+class MobileControlsOption extends Option
+{
+	public function new(desc:String)
+	{
+		super();
+		description = desc;
+	}
+
+	public override function press():Bool
+	{
+		FlxG.state.openSubState(new mobile.MobileControlsSubState());
+		return false;
+	}
+
+	private override function updateDisplay():String
+	{
+		return "Mobile Controls";
+	}
+}
+#end
+
 class CustomizeGameplay extends Option
 {
 	public function new(desc:String)

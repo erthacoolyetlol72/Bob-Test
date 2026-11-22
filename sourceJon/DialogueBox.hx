@@ -291,7 +291,7 @@ class DialogueBox extends FlxSpriteGroup
 			dialogueStarted = true;
 		}
 
-		if (FlxG.keys.justPressed.ANY  && dialogueStarted == true)
+		if ((FlxG.keys.justPressed.ANY #if mobile || FlxG.touches.justStarted().length > 0 #end) && dialogueStarted == true)
 		{
 			if (caniskip == true)
 			{

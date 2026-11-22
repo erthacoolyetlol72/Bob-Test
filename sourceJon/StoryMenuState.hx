@@ -251,6 +251,11 @@ class StoryMenuState extends MusicBeatState
 		choose.screenCenter(X);
 		add(choose);
 
+		#if mobile
+		addVirtualPad(LEFT_FULL, A_B);
+		addVirtualPadCamera(false);
+		#end
+
 		super.create();
 	}
 

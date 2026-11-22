@@ -43,6 +43,11 @@ import lime.utils.Assets;
 import openfl.display.BlendMode;
 import openfl.display.StageQuality;
 import openfl.filters.ShaderFilter;
+#if mobile
+import mobile.MobileControls;
+import mobile.flixel.FlxVirtualPad;
+import flixel.input.actions.FlxActionInput;
+#end
 
 #if windows
 import Discord.DiscordClient;
@@ -140,6 +145,54 @@ class PlayState extends MusicBeatState
 	private var iconP1:HealthIcon;
 	private var iconP2:HealthIcon;
 	private var camHUD:FlxCamera;
+
+	#if mobile
+	var mobileControls:MobileControls;
+	var mobileInputs:Array<FlxActionInput> = [];
+
+	/** Plugs the note controls (hitbox or arrow pad) into the game's controls and shows them. */
+	function bindMobileControls():Void
+	{
+		if (mobileControls == null)
+			return;
+
+		unbindMobileControls();
+
+		if (mobileControls.hitbox != null)
+			controls.setHitBox(mobileControls.hitbox);
+		else if (mobileControls.virtualPad != null)
+		{
+			var dpad:FlxDPadMode = switch (MobileControls.mode)
+			{
+				case 'Pad-Left': LEFT_FULL;
+				case 'Pad-Duo': BOTH_FULL;
+				default: RIGHT_FULL;
+			}
+			controls.setVirtualPadNOTES(mobileControls.virtualPad, dpad, NONE);
+		}
+
+		mobileInputs = controls.trackedInputsNOTES;
+		controls.trackedInputsNOTES = [];
+		mobileControls.visible = true;
+	}
+
+	/** Unplugs and hides the note controls, so a menu on top can use the screen. */
+	function unbindMobileControls():Void
+	{
+		if (mobileInputs.length > 0)
+			controls.removeVirtualControlsInput(mobileInputs);
+		mobileInputs = [];
+
+		if (mobileControls != null)
+			mobileControls.visible = false;
+	}
+
+	override function destroy()
+	{
+		unbindMobileControls();
+		super.destroy();
+	}
+	#end
 	private var camGame:FlxCamera;
 
 	public static var offsetTesting:Bool = false;
@@ -1228,6 +1281,16 @@ class PlayState extends MusicBeatState
 				add(bobmadshake);
 		}
 
+		#if mobile
+		mobileControls = new MobileControls();
+		var camControls:FlxCamera = new FlxCamera();
+		camControls.bgColor.alpha = 0;
+		FlxG.cameras.add(camControls, false);
+		mobileControls.cameras = [camControls];
+		mobileControls.visible = false;
+		add(mobileControls);
+		#end
+
 		super.create();
 	}
 	function RonIntro(?dialogueBox:DialogueBox) 
@@ -1527,6 +1590,9 @@ class PlayState extends MusicBeatState
 
 		talking = false;
 		startedCountdown = true;
+		#if mobile
+		bindMobileControls();
+		#end
 		Conductor.songPosition = 0;
 		Conductor.songPosition -= Conductor.crochet * 5;
 
@@ -1972,6 +2038,9 @@ class PlayState extends MusicBeatState
 
 	override function openSubState(SubState:FlxSubState)
 	{
+		#if mobile
+		unbindMobileControls();
+		#end
 		if (paused)
 		{
 			if (FlxG.sound.music != null)
@@ -1992,6 +2061,10 @@ class PlayState extends MusicBeatState
 
 	override function closeSubState()
 	{
+		#if mobile
+		if (startedCountdown)
+			bindMobileControls();
+		#end
 		if (paused)
 		{
 			if (FlxG.sound.music != null && !startingSong)
@@ -2213,7 +2286,7 @@ class PlayState extends MusicBeatState
 			scoreTxt.text = "Suggested Offset: " + offsetTest;
 
 		}
-		if (FlxG.keys.justPressed.ENTER && startedCountdown && canPause)
+		if ((FlxG.keys.justPressed.ENTER #if android || FlxG.android.justReleased.BACK #end) && startedCountdown && canPause)
 		{
 			persistentUpdate = false;
 			persistentDraw = true;

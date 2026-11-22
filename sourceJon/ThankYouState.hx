@@ -15,6 +15,10 @@ class ThankYouState extends MusicBeatState
 		var thx:FlxSprite = new FlxSprite(0, 0).loadGraphic(Paths.image('bob/thankers', 'shared'));
 		add(thx);
 		FlxG.camera.fade(FlxColor.BLACK, 0.8, true);
+		#if mobile
+		addVirtualPad(NONE, A);
+		addVirtualPadCamera(false);
+		#end
 	}
 
 	override function update(elapsed:Float)
