@@ -89,7 +89,15 @@ jobs:
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
 
       - name: Compile
-        run: haxelib run lime build android -armv7 -arm64 -D NO_PRECOMPILED_HEADERS
+        run: |
+          set +e
+          haxelib run lime build android -armv7 -arm64 -D NO_PRECOMPILED_HEADERS 2>&1 | tee build.log
+          code=${PIPESTATUS[0]}
+          if [ $code -ne 0 ]; then
+            grep -n -i -E "error|failed|exception|not found|could not|undefined" build.log | grep -v -i "warning" | head -12 | cut -c1-350 | while IFS= read -r l; do echo "::error::$l"; done
+            echo "::error::TAIL $(tail -n 20 build.log | cut -c1-220 | tr '\n' '|')"
+          fi
+          exit $code
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
