@@ -94,8 +94,9 @@ jobs:
           haxelib run lime build android -armv7 -arm64 -D NO_PRECOMPILED_HEADERS 2>&1 | tee build.log
           code=${PIPESTATUS[0]}
           if [ $code -ne 0 ]; then
-            grep -n -i -E "error|failed|exception|not found|could not|undefined" build.log | grep -v -i "warning" | head -12 | cut -c1-350 | while IFS= read -r l; do echo "::error::$l"; done
-            echo "::error::TAIL $(tail -n 20 build.log | cut -c1-220 | tr '\n' '|')"
+            ERRS=$(grep -n -E "error:|Error:|undefined reference|ld: |\*\*\*|FAILED|Exception|cannot find|No such file|what went wrong" build.log | grep -v -i "warning" | head -8 | cut -c1-300 | tr '\n' '|')
+            TAILS=$(tail -n 15 build.log | cut -c1-250 | tr '\n' '|')
+            echo "::error::ERRORS ${ERRS} TAIL ${TAILS}"
           fi
           exit $code
 
