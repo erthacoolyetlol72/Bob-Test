@@ -44,6 +44,13 @@ class VideoState extends MusicBeatState
 	override function create()
 	{
 		super.create();
+
+		#if mobile
+		// phones have no video player (GlobalVideo is never set up there): skip the cutscene
+		FlxG.switchState(transClass);
+		return;
+		#end
+
 		FlxG.autoPause = false;
 		doShit = false;
 		
