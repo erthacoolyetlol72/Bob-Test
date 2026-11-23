@@ -79,6 +79,7 @@ class VideoState extends MusicBeatState
 			vidSound = FlxG.sound.play(ogg);
 		}
 
+		trace('VIDEO start ' + frameFolder + ' frames=' + videoFrames + ' sound=' + useSound + (useSound ? (' length=' + vidSound.length) : ''));
 		showFrame(0);
 	}
 
@@ -87,7 +88,10 @@ class VideoState extends MusicBeatState
 		// ffmpeg numbers the pictures from 1
 		var key:String = frameFolder + "f" + StringTools.lpad(Std.string(i + 1), "0", 4) + ".jpg";
 		if (!Assets.exists(key))
+		{
+			trace('VIDEO missing picture ' + key);
 			return;
+		}
 
 		// not cached: 300+ pictures would otherwise pile up in memory
 		var bmp = Assets.getBitmapData(key, false);
@@ -107,6 +111,7 @@ class VideoState extends MusicBeatState
 			return;
 
 		mobileEnded = true;
+		trace('VIDEO end after ' + mobileTime + 's, last picture ' + lastFrame);
 		if (vidSound != null)
 			vidSound.stop();
 		if (FlxG.sound.music != null)
@@ -122,18 +127,12 @@ class VideoState extends MusicBeatState
 
 		mobileTime += elapsed;
 
-		// how far along the video is: follow the sound track, or the clock when there is none
-		var progress:Float = 0;
+		// pictures per second: spread them over the sound track's length, or 24 per second without sound
+		var fps:Float = 24;
 		if (useSound && vidSound != null && vidSound.length > 0)
-		{
-			progress = vidSound.time / vidSound.length;
-			if (!vidSound.playing && mobileTime > 0.5)
-				progress = 1;
-		}
-		else
-			progress = mobileTime / (videoFrames / 24);
+			fps = videoFrames / (vidSound.length / 1000);
 
-		var frame:Int = Std.int(progress * videoFrames);
+		var frame:Int = Std.int(mobileTime * fps);
 		if (frame >= videoFrames)
 		{
 			finishMobile();
