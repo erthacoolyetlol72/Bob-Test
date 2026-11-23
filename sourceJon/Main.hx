@@ -109,12 +109,14 @@ class Main extends Sprite
 	var fpsCounter:FPS;
 
 	public function toggleFPS(fpsEnabled:Bool):Void {
-		fpsCounter.visible = fpsEnabled;
+		if (fpsCounter != null) // not created on mobile
+			fpsCounter.visible = fpsEnabled;
 	}
 
 	public function changeFPSColor(color:FlxColor)
 	{
-		fpsCounter.textColor = color;
+		if (fpsCounter != null) // not created on mobile
+			fpsCounter.textColor = color;
 	}
 
 	public function setFPSCap(cap:Float)
@@ -129,6 +131,8 @@ class Main extends Sprite
 
 	public function getFPS():Float
 	{
+		if (fpsCounter == null) // not created on mobile
+			return openfl.Lib.current.stage.frameRate;
 		return fpsCounter.currentFPS;
 	}
 }
