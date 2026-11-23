@@ -112,16 +112,23 @@ jobs:
 
           sed -i 's#</project>#<window if="html5" width="0" height="0" resizable="true" fullscreen="false" />\n</project>#' Project.xml
 
+          find sourceJon -name '*.hx' -print0 | xargs -0 perl -pi -e 'if (/#(?:if|elseif)\b/) { s/(?<![\w.])mobile(?![\w.])/(mobile || webtouch)/g }'
+          sed -i 's#<assets path="assets/mobile" if="mobile"/>#<assets path="assets/mobile" if="mobile || webtouch"/>#' Project.xml
+
           grep -n "WebQuit" sourceJon/*.hx | head
           grep -n 'replace(".webm", ".mp3")' sourceJon/VideoState.hx
           grep -n 'if="html5" width="0"' Project.xml
+          grep -n 'webtouch' Project.xml
+          echo "lines changed to use webtouch: $(grep -rn 'webtouch' sourceJon | wc -l)"
 
       - name: Compile
         run: |
           set +e
-          haxelib run lime build html5 -final -D mobile 2>&1 | tee build.log
+          haxelib run lime build html5 -final -D webtouch 2>&1 | tee build.log
           code=${PIPESTATUS[0]}
           if [ $code -ne 0 ]; then
+            echo "=========== FIRST ERRORS (with the lines around them) ==========="
+            grep -n -B3 -A8 -m 3 -E "Type not found|has no field|Unknown identifier|Error" build.log | cut -c1-300
             ERRS=$(grep -n -E "Error|error:|Type not found|has no field|Unknown identifier" build.log | head -12 | cut -c1-300 | tr '\n' '|')
             echo "::error::BUILD FAILED. ${ERRS}"
           fi
