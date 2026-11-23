@@ -1,9 +1,5 @@
 name: Build Web Version (iPhone / browser)
 
-# Run it by hand: Actions tab -> "Build Web Version (iPhone / browser)" -> Run workflow.
-# It does NOT touch your Android workflow or your source files in the repo:
-# every fix below is applied to a temporary copy on GitHub's build machine.
-
 on:
   workflow_dispatch:
 
@@ -30,7 +26,6 @@ jobs:
         with:
           haxe-version: 4.2.5
 
-      # Same versions your Android build uses (minus the Android-only extension)
       - name: Install Haxe libraries
         run: |
           haxelib setup ~/haxelib
@@ -43,7 +38,6 @@ jobs:
           haxelib install actuate --quiet --always
           haxelib install newgrounds 1.3.0 --quiet --always
           haxelib install polymod 1.3.1 --quiet --always
-          # installing the libraries above can pull newer versions, so pin them back
           haxelib set lime 7.9.0 --always
           haxelib set openfl 9.1.0 --always
           haxelib set flixel 4.11.0 --always
@@ -56,82 +50,72 @@ jobs:
       - name: Install ffmpeg
         run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
 
-      # The web build plays sound as .mp3, but the repo mostly has .ogg (all songs, for example).
       - name: Make .mp3 copies of every .ogg that has none
         run: |
           count=0
           while IFS= read -r f; do
             m="${f%.ogg}.mp3"
             if [ ! -f "$m" ]; then
-              ffmpeg -loglevel error -y -i "$f" -codec:a libmp3lame -q:a 4 "$m"
+              ffmpeg -nostdin -loglevel error -y -i "$f" -codec:a libmp3lame -q:a 4 "$m"
               count=$((count+1))
             fi
           done < <(find assets -name '*.ogg')
           echo "Converted $count files to mp3"
 
-      # Browsers (Safari especially) can't be trusted with .webm, so cutscenes are shown as pictures,
-      # exactly like the Android version does. Smaller than Android's to keep the download light.
       - name: Turn the cutscene videos into pictures
         run: |
           for v in ronPreCutscene ronEndCutscene; do
             mkdir -p "assets/preload/videoframes/$v"
-            ffmpeg -loglevel error -i "assets/preload/videos/$v/$v.webm" -vf scale=640:-2 -q:v 8 "assets/preload/videoframes/$v/f%04d.jpg"
+            ffmpeg -nostdin -loglevel error -i "assets/preload/videos/$v/$v.webm" -vf scale=640:-2 -q:v 8 "assets/preload/videoframes/$v/f%04d.jpg"
             echo "$v: $(ls assets/preload/videoframes/$v | wc -l) pictures"
           done
           du -sh assets/preload/videoframes
 
-      # Small fixes so the code compiles for the web (done on this temporary copy only)
       - name: Patch code for the web
         run: |
-          # 1. Sys.exit() doesn't exist in browsers: use a helper that reloads the page instead
           cat > sourceJon/WebQuit.hx << 'EOF'
           package;
 
           class WebQuit
           {
-          	public static function quit():Void
-          	{
-          		#if sys
-          		Sys.exit(0);
-          		#elseif js
-          		js.Browser.location.reload();
-          		#end
-          	}
+            public static function quit():Void
+            {
+              #if sys
+              Sys.exit(0);
+              #elseif js
+              js.Browser.location.reload();
+              #end
+            }
           }
           EOF
           sed -i 's/Sys\.exit(0);/WebQuit.quit();/' sourceJon/OnslaughtEndingState.hx sourceJon/GameOverSubstate.hx sourceJon/EndingState.hx
 
-          # 2. The Android test helper uses desktop-only code: use an empty version on the web
           cat > sourceJon/SmokeTest.hx << 'EOF'
           package;
 
           class SmokeTest
           {
-          	public static var active:Bool = false;
+            public static var active:Bool = false;
 
-          	public static function check():Bool
-          	{
-          		return false;
-          	}
+            public static function check():Bool
+            {
+              return false;
+            }
 
-          	public static function startNext():Void {}
+            public static function startNext():Void {}
 
-          	public static function update(elapsed:Float):Void {}
+            public static function update(elapsed:Float):Void {}
           }
           EOF
 
-          # 3. Cutscene sound: the web build only has .mp3
           sed -i 's/var ogg:String = leSource.replace(".webm", ".ogg");/var ogg:String = leSource.replace(".webm", ".mp3");/' sourceJon/VideoState.hx
 
-          # 4. Let the game fill the browser window instead of a fixed 1280x720 box
           sed -i 's#</project>#<window if="html5" width="0" height="0" resizable="true" fullscreen="false" />\n</project>#' Project.xml
 
-          echo "--- sanity check: these should print the patched lines ---"
           grep -n "WebQuit" sourceJon/*.hx | head
           grep -n 'replace(".webm", ".mp3")' sourceJon/VideoState.hx
           grep -n 'if="html5" width="0"' Project.xml
 
-      # "-D mobile" turns on the same touch controls and picture-cutscenes the Android version uses
       - name: Compile
         run: |
           set +e
@@ -147,7 +131,6 @@ jobs:
         run: |
           OUT=$(ls -d exportJon/release/html5/bin)
           ls -la "$OUT" | head -20
-          # lets "Add to Home Screen" open the game full screen, without Safari's bars
           sed -i 's#<head>#<head>\n<meta name="apple-mobile-web-app-capable" content="yes">\n<meta name="mobile-web-app-capable" content="yes">\n<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">#' "$OUT/index.html" || true
           du -sh "$OUT"
 
