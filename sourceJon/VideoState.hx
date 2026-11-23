@@ -41,13 +41,126 @@ class VideoState extends MusicBeatState
 		transClass = toTrans;
 	}
 	
+	#if mobile
+	/**
+	 * Phones have no video player. The build turns each video into pictures
+	 * (assets/videoframes/NAME/f0001.jpg, f0002.jpg ...) and this plays them in step with the sound track.
+	 */
+	var frameSprite:FlxSprite;
+	var lastFrame:Int = -1;
+	var mobileTime:Float = 0;
+	var mobileEnded:Bool = false;
+	var frameFolder:String = "";
+
+	function createMobile():Void
+	{
+		var bg:FlxSprite = new FlxSprite().makeGraphic(FlxG.width, FlxG.height, FlxColor.BLACK);
+		add(bg);
+
+		frameSprite = new FlxSprite();
+		add(frameSprite);
+
+		// "assets/videos/ronPreCutscene/ronPreCutscene.webm" -> "ronPreCutscene"
+		var name:String = leSource.substring(leSource.lastIndexOf("/") + 1, leSource.lastIndexOf("."));
+		frameFolder = "assets/videoframes/" + name + "/";
+
+		var countFile:String = leSource.replace(".webm", ".txt");
+		var counted:Null<Int> = Assets.exists(countFile) ? Std.parseInt(Assets.getText(countFile)) : null;
+		videoFrames = (counted == null || counted <= 0) ? 240 : counted;
+
+		fuckingVolume = (FlxG.sound.music != null) ? FlxG.sound.music.volume : 1;
+		if (FlxG.sound.music != null)
+			FlxG.sound.music.volume = 0;
+
+		var ogg:String = leSource.replace(".webm", ".ogg");
+		if (Assets.exists(ogg, MUSIC) || Assets.exists(ogg, SOUND))
+		{
+			useSound = true;
+			vidSound = FlxG.sound.play(ogg);
+		}
+
+		showFrame(0);
+	}
+
+	function showFrame(i:Int):Void
+	{
+		// ffmpeg numbers the pictures from 1
+		var key:String = frameFolder + "f" + StringTools.lpad(Std.string(i + 1), "0", 4) + ".jpg";
+		if (!Assets.exists(key))
+			return;
+
+		// not cached: 300+ pictures would otherwise pile up in memory
+		var bmp = Assets.getBitmapData(key, false);
+		if (bmp == null)
+			return;
+
+		frameSprite.loadGraphic(bmp);
+		frameSprite.setGraphicSize(FlxG.width, FlxG.height);
+		frameSprite.updateHitbox();
+		frameSprite.screenCenter();
+		lastFrame = i;
+	}
+
+	function finishMobile():Void
+	{
+		if (mobileEnded)
+			return;
+
+		mobileEnded = true;
+		if (vidSound != null)
+			vidSound.stop();
+		if (FlxG.sound.music != null)
+			FlxG.sound.music.volume = fuckingVolume;
+		FlxG.autoPause = true;
+		FlxG.switchState(transClass);
+	}
+
+	function updateMobile(elapsed:Float):Void
+	{
+		if (mobileEnded)
+			return;
+
+		mobileTime += elapsed;
+
+		// how far along the video is: follow the sound track, or the clock when there is none
+		var progress:Float = 0;
+		if (useSound && vidSound != null && vidSound.length > 0)
+		{
+			progress = vidSound.time / vidSound.length;
+			if (!vidSound.playing && mobileTime > 0.5)
+				progress = 1;
+		}
+		else
+			progress = mobileTime / (videoFrames / 24);
+
+		var frame:Int = Std.int(progress * videoFrames);
+		if (frame >= videoFrames)
+		{
+			finishMobile();
+			return;
+		}
+		if (frame != lastFrame)
+			showFrame(frame);
+
+		// a tap or the accept button skips the video
+		var tapped:Bool = false;
+		for (touch in FlxG.touches.list)
+		{
+			if (touch.justPressed)
+				tapped = true;
+		}
+		if (tapped || controls.ACCEPT)
+			finishMobile();
+	}
+	#end
+
 	override function create()
 	{
 		super.create();
 
 		#if mobile
-		// phones have no video player (GlobalVideo is never set up there): skip the cutscene
-		FlxG.switchState(transClass);
+		// phones have no video player (GlobalVideo is never set up there): show the cutscene as pictures
+		createMobile();
 		return;
 		#end
 
@@ -122,7 +235,7 @@ class VideoState extends MusicBeatState
 		super.update(elapsed);
 
 		#if mobile
-		// no video player on phones: create() already asked for the next state
+		updateMobile(elapsed);
 		return;
 		#end
 		

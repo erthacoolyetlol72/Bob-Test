@@ -113,6 +113,17 @@ jobs:
             echo "Building a debug test build"
           fi
 
+      - name: Turn the cutscene videos into pictures
+        run: |
+          # phones have no video player, so the game shows each video as pictures plus its sound track
+          sudo apt-get install -y -qq ffmpeg
+          for v in ronPreCutscene ronEndCutscene; do
+            mkdir -p "assets/preload/videoframes/$v"
+            ffmpeg -loglevel error -i "assets/preload/videos/$v/$v.webm" -vf scale=960:-2 -q:v 4 "assets/preload/videoframes/$v/f%04d.jpg"
+            echo "$v: $(ls assets/preload/videoframes/$v | wc -l) pictures (video says $(cat assets/preload/videos/$v/$v.txt) frames)"
+          done
+          du -sh assets/preload/videoframes
+
       - name: Compile
         env:
           # hxcpp reuses compiled files from this folder, so only changed code is recompiled
