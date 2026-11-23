@@ -13,11 +13,9 @@ using StringTools;
  */
 class SmokeTest
 {
-	static var songs:Array<String> = [
-		'tutorial', 'sunshine', 'withered', 'run', 'ron', 'trouble', 'onslaught', 'little-man', 'run-remix-because-its-cool'
-	];
+	static var songs:Array<String> = ['sunshine', 'withered', 'run', 'ron', 'trouble', 'onslaught', 'little-man'];
 
-	static var weeks:Array<Int> = [0, 1, 1, 1, 2, 2, 2, 2, 1];
+	static var weeks:Array<Int> = [1, 1, 1, 2, 2, 2, 2];
 
 	public static var active:Bool = false;
 
