@@ -1300,8 +1300,8 @@ class PlayState extends MusicBeatState
 		add(mobileControls);
 		camMobile = camControls;
 
-		// pause button: two white bars on a dark square, top middle (between the two note lanes)
-		pauseButton = new FlxSprite(FlxG.width / 2 - 45, 8);
+		// pause button: two white bars on a dark square, top right corner
+		pauseButton = new FlxSprite(FlxG.width - 100, 8);
 		pauseButton.makeGraphic(90, 90, 0xAA000000, true);
 		pauseButton.pixels.fillRect(new Rectangle(28, 22, 12, 46), 0xFFFFFFFF);
 		pauseButton.pixels.fillRect(new Rectangle(50, 22, 12, 46), 0xFFFFFFFF);
@@ -2324,14 +2324,26 @@ class PlayState extends MusicBeatState
 		{
 			for (touch in FlxG.touches.list)
 			{
-				if (touch.justPressed && touch.overlaps(pauseButton, camMobile))
+				if (!touch.justPressed)
+					continue;
+
+				// where the finger is, in the same units as the button (the controls camera)
+				var tp:FlxPoint = touch.getScreenPosition(camMobile);
+				var margin:Float = 25; // a bit bigger than the drawn button
+				if (tp.x >= pauseButton.x - margin && tp.x <= pauseButton.x + pauseButton.width + margin
+					&& tp.y >= pauseButton.y - margin && tp.y <= pauseButton.y + pauseButton.height + margin)
+				{
+					trace('PAUSE button tapped at ' + tp.x + ',' + tp.y);
 					pauseNow = true;
+				}
+				tp.put();
 			}
 		}
 		#end
 
 		if (pauseNow && startedCountdown && canPause)
 		{
+			trace('PAUSE opening');
 			persistentUpdate = false;
 			persistentDraw = true;
 			paused = true;

@@ -2,6 +2,7 @@ package;
 
 import Controls.Control;
 import flixel.FlxG;
+import flixel.math.FlxPoint;
 import flixel.FlxSprite;
 import flixel.FlxSubState;
 import flixel.addons.transition.FlxTransitionableState;
@@ -100,14 +101,20 @@ class PauseSubState extends MusicBeatSubstate
 			if (!touch.justPressed)
 				continue;
 
+			var tp:FlxPoint = touch.getScreenPosition(cameras[0]);
 			for (i in 0...grpMenuShit.members.length)
 			{
-				if (touch.overlaps(grpMenuShit.members[i], cameras[0]))
+				var item:Alphabet = grpMenuShit.members[i];
+				var ip:FlxPoint = item.getScreenPosition(null, cameras[0]);
+				if (tp.x >= ip.x && tp.x <= ip.x + item.width && tp.y >= ip.y && tp.y <= ip.y + item.height)
 				{
+					trace('PAUSE menu tapped entry ' + i);
 					curSelected = i;
 					accepted = true;
 				}
+				ip.put();
 			}
+			tp.put();
 		}
 		#end
 
