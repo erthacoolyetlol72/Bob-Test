@@ -93,6 +93,24 @@ class PauseSubState extends MusicBeatSubstate
 		var downP = controls.DOWN_P;
 		var accepted = controls.ACCEPT;
 
+		#if mobile
+		// tapping an entry picks it
+		for (touch in FlxG.touches.list)
+		{
+			if (!touch.justPressed)
+				continue;
+
+			for (i in 0...grpMenuShit.members.length)
+			{
+				if (touch.overlaps(grpMenuShit.members[i], cameras[0]))
+				{
+					curSelected = i;
+					accepted = true;
+				}
+			}
+		}
+		#end
+
 		if (upP)
 		{
 			changeSelection(-1);

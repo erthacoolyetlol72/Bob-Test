@@ -47,6 +47,7 @@ import openfl.filters.ShaderFilter;
 import mobile.MobileControls;
 import mobile.flixel.FlxVirtualPad;
 import flixel.input.actions.FlxActionInput;
+import openfl.geom.Rectangle;
 #end
 
 #if windows
@@ -150,6 +151,10 @@ class PlayState extends MusicBeatState
 	var mobileControls:MobileControls;
 	var mobileInputs:Array<FlxActionInput> = [];
 
+	/** On-screen pause button (top middle) and the camera it is drawn on. */
+	var pauseButton:FlxSprite;
+	var camMobile:FlxCamera;
+
 	/** Plugs the note controls (hitbox or arrow pad) into the game's controls and shows them. */
 	function bindMobileControls():Void
 	{
@@ -174,6 +179,8 @@ class PlayState extends MusicBeatState
 		mobileInputs = controls.trackedInputsNOTES;
 		controls.trackedInputsNOTES = [];
 		mobileControls.visible = true;
+		if (pauseButton != null)
+			pauseButton.visible = true;
 	}
 
 	/** Unplugs and hides the note controls, so a menu on top can use the screen. */
@@ -185,6 +192,8 @@ class PlayState extends MusicBeatState
 
 		if (mobileControls != null)
 			mobileControls.visible = false;
+		if (pauseButton != null)
+			pauseButton.visible = false;
 	}
 
 	override function destroy()
@@ -1289,6 +1298,18 @@ class PlayState extends MusicBeatState
 		mobileControls.cameras = [camControls];
 		mobileControls.visible = false;
 		add(mobileControls);
+		camMobile = camControls;
+
+		// pause button: two white bars on a dark square, top middle (between the two note lanes)
+		pauseButton = new FlxSprite(FlxG.width / 2 - 45, 8);
+		pauseButton.makeGraphic(90, 90, 0xAA000000, true);
+		pauseButton.pixels.fillRect(new Rectangle(28, 22, 12, 46), 0xFFFFFFFF);
+		pauseButton.pixels.fillRect(new Rectangle(50, 22, 12, 46), 0xFFFFFFFF);
+		pauseButton.dirty = true;
+		pauseButton.scrollFactor.set();
+		pauseButton.cameras = [camControls];
+		pauseButton.visible = false;
+		add(pauseButton);
 		#end
 
 		super.create();
@@ -2293,7 +2314,23 @@ class PlayState extends MusicBeatState
 			scoreTxt.text = "Suggested Offset: " + offsetTest;
 
 		}
-		if ((FlxG.keys.justPressed.ENTER #if android || FlxG.android.justReleased.BACK #end) && startedCountdown && canPause)
+		var pauseNow:Bool = FlxG.keys.justPressed.ENTER;
+		#if android
+		if (FlxG.android.justReleased.BACK)
+			pauseNow = true;
+		#end
+		#if mobile
+		if (pauseButton != null && pauseButton.visible)
+		{
+			for (touch in FlxG.touches.list)
+			{
+				if (touch.justPressed && touch.overlaps(pauseButton, camMobile))
+					pauseNow = true;
+			}
+		}
+		#end
+
+		if (pauseNow && startedCountdown && canPause)
 		{
 			persistentUpdate = false;
 			persistentDraw = true;

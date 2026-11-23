@@ -5,6 +5,10 @@ on:
     branches: [ main ]
   workflow_dispatch:
     inputs:
+      final:
+        description: 'Build the FINAL release (no debug, ARM 32+64 bit) and publish it as the Android release.'
+        type: boolean
+        default: false
       all_archs:
         description: 'Build every kind of phone (ARM 32+64 bit and Intel). Off = only 64-bit ARM, which is what current phones and BlueStacks use.'
         type: boolean
@@ -98,16 +102,35 @@ jobs:
         env:
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
 
+      - name: Decide build type
+        run: |
+          # a commit message containing [final] (or the manual "final" option) builds the final release
+          if [[ "${{ github.event.head_commit.message }}" == *"[final]"* || "${{ github.event.inputs.final }}" == "true" ]]; then
+            echo "FINAL=1" >> "$GITHUB_ENV"
+            echo "Building the FINAL release"
+          else
+            echo "FINAL=0" >> "$GITHUB_ENV"
+            echo "Building a debug test build"
+          fi
+
       - name: Compile
         env:
           # hxcpp reuses compiled files from this folder, so only changed code is recompiled
           HXCPP_COMPILE_CACHE: ${{ github.workspace }}/.hxcpp_cache
         run: |
           set +e
-          ARCHS="-arm64"
-          if [ "${{ github.event.inputs.all_archs }}" = "true" ]; then ARCHS="-armv7 -arm64 -32"; fi
-          echo "Building for: $ARCHS"
-          haxelib run lime build android -debug $ARCHS -D NO_PRECOMPILED_HEADERS -D HXCPP_CHECK_POINTER -D FLX_NO_DEBUG 2>&1 | tee build.log
+          if [ "$FINAL" = "1" ]; then
+            # final: normal release build for 32 and 64 bit phones (no Intel code: BlueStacks then uses the 64-bit ARM version)
+            ARCHS="-armv7 -arm64"
+            FLAGS="-D NO_PRECOMPILED_HEADERS"
+          else
+            ARCHS="-arm64"
+            if [ "${{ github.event.inputs.all_archs }}" = "true" ]; then ARCHS="-armv7 -arm64 -32"; fi
+            # debug test build: crash traces on, Flixel debugger overlay off
+            FLAGS="-debug -D NO_PRECOMPILED_HEADERS -D HXCPP_CHECK_POINTER -D FLX_NO_DEBUG"
+          fi
+          echo "Building for: $ARCHS with: $FLAGS"
+          haxelib run lime build android $ARCHS $FLAGS 2>&1 | tee build.log
           code=${PIPESTATUS[0]}
           if [ $code -ne 0 ]; then
             ERRS=$(grep -n -E "error:|Error:|undefined reference|ld: |\*\*\*|FAILED|Exception|cannot find|No such file|what went wrong" build.log | grep -v -i "warning" | head -8 | cut -c1-300 | tr '\n' '|')
@@ -123,7 +146,18 @@ jobs:
           path: exportJon/*/android/bin/app/build/outputs/apk/**/*.apk
           if-no-files-found: error
 
+      - name: Publish final release
+        if: env.FINAL == '1'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-final
+          name: Bob's Onslaught - Android (final)
+          prerelease: false
+          body: Final Android release built from ${{ github.sha }}. Download the .apk below and install it (64-bit and 32-bit ARM phones, and BlueStacks).
+          files: exportJon/*/android/bin/app/build/outputs/apk/debug/*.apk
+
       - name: Publish test release
+        if: env.FINAL != '1'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: test-latest
