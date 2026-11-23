@@ -2208,6 +2208,13 @@ class PlayState extends MusicBeatState
 
 	override public function update(elapsed:Float)
 	{
+		#if mobile
+		if (SmokeTest.active)
+		{
+			health = 2;
+			SmokeTest.update(elapsed);
+		}
+		#end
 		#if !debug
 		perfectMode = false;
 		#end

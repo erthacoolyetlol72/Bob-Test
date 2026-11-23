@@ -91,6 +91,14 @@ class TitleState extends MusicBeatState
 
 		Highscore.load();
 
+		#if mobile
+		if (SmokeTest.check())
+		{
+			SmokeTest.startNext();
+			return;
+		}
+		#end
+
 		if (FlxG.save.data.weekUnlocked != null)
 		{
 			// FIX LATER!!!

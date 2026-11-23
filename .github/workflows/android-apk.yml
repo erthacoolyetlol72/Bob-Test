@@ -4,6 +4,11 @@ on:
   push:
     branches: [ main ]
   workflow_dispatch:
+    inputs:
+      all_archs:
+        description: 'Also build the ARM versions for real phones (slower). Leave off for a fast build that runs in BlueStacks.'
+        type: boolean
+        default: false
 
 jobs:
   buildAndroid:
@@ -48,8 +53,9 @@ jobs:
           path: |
             ~/haxelib
             ~/.gradle
-            exportJon/release/android/obj
-          key: android-build-${{ hashFiles('Project.xml', '.github/workflows/android-apk.yml') }}
+            .hxcpp_cache
+          # a new key every run so the compile cache is saved again each time
+          key: android-build-${{ github.run_id }}
           restore-keys: android-build-
 
       - name: Install Haxe libraries
@@ -90,9 +96,15 @@ jobs:
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
 
       - name: Compile
+        env:
+          # hxcpp reuses compiled files from this folder, so only changed code is recompiled
+          HXCPP_COMPILE_CACHE: ${{ github.workspace }}/.hxcpp_cache
         run: |
           set +e
-          haxelib run lime build android -debug -armv7 -arm64 -32 -D NO_PRECOMPILED_HEADERS -D HXCPP_CHECK_POINTER 2>&1 | tee build.log
+          ARCHS="-32"
+          if [ "${{ github.event.inputs.all_archs }}" = "true" ]; then ARCHS="-armv7 -arm64 -32"; fi
+          echo "Building for: $ARCHS"
+          haxelib run lime build android -debug $ARCHS -D NO_PRECOMPILED_HEADERS -D HXCPP_CHECK_POINTER 2>&1 | tee build.log
           code=${PIPESTATUS[0]}
           if [ $code -ne 0 ]; then
             ERRS=$(grep -n -E "error:|Error:|undefined reference|ld: |\*\*\*|FAILED|Exception|cannot find|No such file|what went wrong" build.log | grep -v -i "warning" | head -8 | cut -c1-300 | tr '\n' '|')
@@ -120,8 +132,9 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Launch the APK in an emulator and read the log
+      - name: Play every song in an emulator and report crashes
         continue-on-error: true
+        timeout-minutes: 40
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 28
