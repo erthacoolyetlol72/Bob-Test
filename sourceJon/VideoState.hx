@@ -120,6 +120,11 @@ class VideoState extends MusicBeatState
 	override function update(elapsed:Float)
 	{
 		super.update(elapsed);
+
+		#if mobile
+		// no video player on phones: create() already asked for the next state
+		return;
+		#end
 		
 		if (useSound)
 		{
