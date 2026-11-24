@@ -119,7 +119,10 @@ jobs:
           perl -0pi -e 's/Assets\.loadLibrary\(library\)\.onComplete\(function \(_\) \{ callback\(\); \}\);/Assets.loadLibrary(library).onComplete(function (_) { callback(); }).onError(function (e) { lime.app.Application.current.window.alert("Library failed to load: " + library + "\\n" + Std.string(e), "Load error"); });/' sourceJon/LoadingState.hx
           perl -0pi -e 's/initSongsManifest\(\)\.onComplete\s*\(\s*function \(lib\)/initSongsManifest().onError(function (e) { lime.app.Application.current.window.alert("Songs list failed to load: " + Std.string(e), "Load error"); }).onComplete(function (lib)/' sourceJon/LoadingState.hx
 
+          perl -0pi -e 's/throw "Missing library: " \+ library;/return;/' sourceJon/LoadingState.hx
+
           grep -n "WebQuit" sourceJon/*.hx | head
+          echo "missing-library crash removed: $(grep -c 'Missing library' sourceJon/LoadingState.hx) left (should be 0)"
           echo "error messages added: $(grep -c 'Load error' sourceJon/LoadingState.hx) (should be 3)"
           grep -n 'replace(".webm", ".mp3")' sourceJon/VideoState.hx
           grep -n 'if="html5" width="0"' Project.xml
